@@ -1,9 +1,9 @@
 package org.example.todoapispringapplication;
 
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -13,18 +13,22 @@ import java.util.List;
 @RequestMapping("/api/v1/todos")
 public class TodoController {
 
+
+     private final TodoService todoService;
     private static List<Todo>todosList;
 
-    public TodoController()
+    public TodoController(@Qualifier("FakeTodoService") TodoService todoService)
     {
+        this.todoService = todoService;
         todosList = new ArrayList<>();
         todosList.add(new Todo(1,false,"Todo 1",1));
         todosList.add(new Todo(2,true,"Todo 2",2));
     }
 
     @GetMapping
-    public ResponseEntity<List<Todo>>getTodos()
+    public ResponseEntity<List<Todo>>getTodos(@RequestParam(required = false,defaultValue ="true") boolean isCompleted)
     {
+        System.out.println(todoService.doSomething());
         return ResponseEntity.ok().body(todosList);
     }
 
@@ -37,7 +41,7 @@ public class TodoController {
     }
 
     @GetMapping("/{todoId}")
-    public ResponseEntity<Todo>getTodoById(@PathVariable int todoId)
+    public ResponseEntity<?>getTodoById(@PathVariable int todoId)
     {
         for(Todo todo : todosList)
         {
@@ -46,7 +50,7 @@ public class TodoController {
                  return ResponseEntity.ok().body(todo);
              }
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("not found");
     }
 
     @DeleteMapping("/{todoId}")
