@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/todos")
@@ -15,72 +16,59 @@ public class TodoController {
 
 
      private final TodoService todoService;
-    private static List<Todo>todosList;
 
-    public TodoController(@Qualifier("FakeTodoService") TodoService todoService)
+    public TodoController(@Qualifier("AnotherTodoService") TodoService todoService)
     {
         this.todoService = todoService;
-        todosList = new ArrayList<>();
-        todosList.add(new Todo(1,false,"Todo 1",1));
-        todosList.add(new Todo(2,true,"Todo 2",2));
+
     }
 
     @GetMapping
     public ResponseEntity<List<Todo>>getTodos(@RequestParam(required = false,defaultValue ="true") boolean isCompleted)
     {
-        System.out.println(todoService.doSomething());
-        return ResponseEntity.ok().body(todosList);
+        return ResponseEntity.ok().body(todoService.getAllTodos());
     }
 
     @PostMapping
    // one way to get stats code @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Todo> addTodo(@RequestBody Todo todo)
     {
-        todosList.add(todo);
+         todoService.addTodo(todo);
         return ResponseEntity.status(HttpStatus.CREATED).body(todo);
     }
 
     @GetMapping("/{todoId}")
     public ResponseEntity<?>getTodoById(@PathVariable int todoId)
     {
-        for(Todo todo : todosList)
-        {
-             if(todo.getId() == todoId)
-             {
-                 return ResponseEntity.ok().body(todo);
-             }
+        Optional<Todo> optionalTodo = todoService.getTodoById(todoId);
+        if (optionalTodo.isPresent()) {
+            Todo todo = optionalTodo.get();
+            return ResponseEntity.ok().body(todo);
+
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("not found");
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("not found");
+
     }
 
     @DeleteMapping("/{todoId}")
-    public ResponseEntity<?>deleteById(@PathVariable int todoId)
-    {
-         int ind=-1;
-         for(Todo todo : todosList)
-         {
-               if(todo.getId() == todoId)
-               {
-                   ind = todosList.indexOf(todo);
-               }
-         }
-         if(ind != -1) {
-             todosList.remove(ind);
-             return ResponseEntity.ok().build();
-         }
-         else
-             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    public ResponseEntity<?> deleteById(@PathVariable int todoId) {
+        if (todoService.getTodoById(todoId).isPresent()) {
+            todoService.deleteTodoById(todoId);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Todo not found");
+        }
     }
 
     @PatchMapping("/{todoId}")
     public ResponseEntity<?> updateTodo(@PathVariable int todoId, @RequestBody Todo updatedTodo) {
-        for (Todo todo : todosList) {
-            if (todo.getId() == todoId) {
-               todosList.set(todosList.indexOf(todo),updatedTodo );
-                return ResponseEntity.ok().body(todo);
-            }
-        }
 
+         if(todoService.exist(todoId)) {
+             todoService.updateTodo(todoId, updatedTodo);
+             return ResponseEntity.ok().build();
+         }
+         else
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
